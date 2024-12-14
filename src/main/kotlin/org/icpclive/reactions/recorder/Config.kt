@@ -47,10 +47,8 @@ object Config : CliktCommand() { // help = "java -jar reactions.jar", printHelpO
             .toFlow()
             .addComputedData()
 
-        val client = GrabberClient(grabberUrl, "admin" to "live")
-
         runBlocking {
-            Recorder(loader, client).run(this@runBlocking)
+            Recorder(loader).run(this@runBlocking)
         }
     }
 }

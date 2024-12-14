@@ -18,6 +18,8 @@ import kotlin.time.Duration
 import io.ktor.client.plugins.auth.Auth as AuthPlugin
 
 class GrabberClient(grabberUrl: String, private val grabberAuth: Pair<String, String>? = null) {
+    constructor(grabberUrl: Config) : this(grabberUrl.grabberUrl, grabberAuth = grabberUrl.grabberAuth)
+
     private val apiPath = "$grabberUrl/api/admin"
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -90,4 +92,6 @@ class GrabberClient(grabberUrl: String, private val grabberAuth: Pair<String, St
     companion object {
         val log by getLogger()
     }
+
+    data class Config(val grabberUrl: String, val grabberAuth: Pair<String, String>?)
 }
