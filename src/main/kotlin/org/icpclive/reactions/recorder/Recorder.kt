@@ -1,10 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.icpclive.reactions.recorder
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import org.icpclive.cds.ContestUpdate
@@ -16,10 +18,10 @@ import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Path
 import kotlin.io.path.appendLines
 import kotlin.io.path.createFile
-import kotlin.math.exp
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 class Recorder(private val cds: Flow<ContestUpdate>) {
     private val actionLogger = Path.of("record.log")
@@ -39,8 +41,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
     private val clientsCache = mutableMapOf<GrabberClient.Config, GrabberClient>()
 
     private fun getGrabberClient(contestInfo: ContestInfo, run: RunInfo): GrabberClient? {
-        val team = contestInfo.teams[run.teamId] ?: return null
-        val media = team.medias[TeamMediaType.SCREEN] as? MediaType.WebRTCGrabberConnection
+        val media = getGrabberConnection(contestInfo.teams[run.teamId])
         if (media == null) {
             log.info { "No media grabber info for ${run.teamId}" }
             return null
@@ -50,12 +51,16 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
     }
 
     private fun getPeerName(contestInfo: ContestInfo, run: RunInfo): String? {
-        val c = contestInfo.teams[run.teamId]?.let { it.customFields["grabberPeerName"] }
+        val team = contestInfo.teams[run.teamId]
+        val c = getGrabberConnection(team)?.peerName ?: team?.let { it.customFields["comp"] }
         if (c == null) {
             log.info { "Failed to get comp of ${run.teamId}" }
         }
         return c
     }
+
+    private fun getGrabberConnection(team: TeamInfo?): MediaType.WebRTCGrabberConnection? =
+        (team?.medias[TeamMediaType.CAMERA] as? MediaType.WebRTCGrabberConnection)
 
     suspend fun run(scope: CoroutineScope) {
         val cache = mutableMapOf<RunId, RunInfo>()
@@ -69,24 +74,25 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                 return@collect
             }
             val run = it.newInfo
-            if (run.teamId !in contestInfo!!.teams) {
+            if (run.teamId !in contestInfo.teams) {
                 return@collect
-            } else if (contestInfo!!.currentContestTime - run.time > DEFAULT_MAX_RECORD_DELAY) {
+            } else if (contestInfo.currentContestTime - run.time > DEFAULT_MAX_RECORD_DELAY) {
                 log.info { "Skip too old run ${run.id}" }
                 return@collect
             }
 
             val time = Clock.System.now().format(DateTimeComponents.Formats.ISO_DATE_TIME_OFFSET)
             val runInCache = cache[run.id]
-            val client = getGrabberClient(contestInfo!!, run)
+            val client = getGrabberClient(contestInfo, run)
             if (runInCache?.result is RunResult.InProgress && run.result !is RunResult.InProgress) {
+                val peerName = getPeerName(contestInfo, run)
                 if (storage.getRecordInfo(run.id)?.state != RecordState.STOPPED) {
-                    log("${time};stop;${run.id};${run.teamId};${run.problemId};${(run.result as RunResult.ICPC).verdict}")
+                    log("${time};stop;${run.id};${run.teamId};${run.problemId};${(run.result as? RunResult.ICPC)?.verdict}")
                     storage.setStopTime(run.id, now())
-                    log.info { "Schedule stop by ${run.id}" }
+                    log.info { "Schedule stop by ${run.id} ($peerName)" }
                     scope.launch {
-                        val peerName = getPeerName(contestInfo!!, run) ?: return@launch
-                        delay(atLeastContestEnd(contestInfo!!, RECORD_AFTER_STOP))
+                        if (peerName == null) return@launch
+                        delay(atLeastContestEnd(contestInfo, RECORD_AFTER_STOP))
                         try {
                             client?.stopRecord(peerName, run.id.toString())
                         } catch (e: Exception) {
@@ -94,15 +100,16 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                         }
                     }
                 } else {
-                    log.warning { "Record already stopped for ${run.id}" }
+                    log.warning { "Record already stopped for ${run.id} ($peerName)" }
                 }
             } else if (runInCache == null && run.result is RunResult.InProgress) {
+                val peerName = getPeerName(contestInfo, run)
                 if (storage.getRecordInfo(run.id) == null) {
                     log("${time};start;${run.id};${run.teamId};${run.problemId};")
                     storage.setStartTime(run.id, now())
-                    log.info { "Start testing ${run.id}" }
+                    log.info { "Start testing ${run.id} ($peerName)" }
                     scope.launch {
-                        val peerName = getPeerName(contestInfo!!, run) ?: return@launch
+                        if (peerName == null) return@launch
                         try {
                             client?.startRecord(
                                 peerName, run.id.toString(), atLeastContestEnd(contestInfo!!, DEFAULT_MAX_RECORD_DELAY)
@@ -115,12 +122,13 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                     log.warning { "Record already started (as testing) for ${run.id}" }
                 }
             } else if (runInCache == null) {
+                val peerName = getPeerName(contestInfo, run)
                 if (storage.getRecordInfo(run.id) == null) {
-                    log("${time};start;${run.id};${run.teamId};${run.problemId};${(run.result as RunResult.ICPC).verdict}")
-                    log.info { "Start judged ${run.id} ${(run.result as RunResult.ICPC).verdict}" }
+                    log("${time};start;${run.id};${run.teamId};${run.problemId};${(run.result as? RunResult.ICPC)?.verdict}")
+                    log.info { "Start judged ${run.id} ${(run.result as? RunResult.ICPC)?.verdict} ($peerName)" }
                     storage.setStopTime(run.id, now(), nowWithDefaultTimeout())
                     scope.launch {
-                        val peerName = getPeerName(contestInfo!!, run) ?: return@launch
+                        if (peerName == null) return@launch
                         try {
                             client?.startRecord(
                                 peerName, run.id.toString(), atLeastContestEnd(contestInfo!!, MAX_RECORD_DURATION)
@@ -130,7 +138,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                         }
                     }
                 } else {
-                    log.warning { "Record already started (as judged) for ${run.id}" }
+                    log.warning { "Record already started (as judged) for ${run.id} ($peerName)" }
                 }
             }
             cache[run.id] = run
@@ -139,7 +147,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
 
     private fun atLeastContestEnd(contestInfo: ContestInfo, expected: Duration): Duration {
         val now = Clock.System.now()
-        val stopTime = contestInfo.instantAt(contestInfo.contestLength - 3.seconds)
+        val stopTime = contestInfo.instantAt(contestInfo.contestLength - 10.seconds)
         if (now <= stopTime) {
             return minOf(expected, stopTime - now)
         }
