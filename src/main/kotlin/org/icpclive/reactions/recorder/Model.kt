@@ -1,11 +1,13 @@
 package org.icpclive.reactions.recorder
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 import org.icpclive.cds.api.RunId
+import kotlin.time.ExperimentalTime
+import kotlin.time.Clock
 
 @Serializable
+@OptIn(ExperimentalTime::class)
 data class RecordInfo(
     val runId: RunId,
     val startTime: Instant,
@@ -13,6 +15,7 @@ data class RecordInfo(
     val uploaded: Boolean = false
 )
 
+@OptIn(ExperimentalTime::class)
 val RecordInfo.state: RecordState
     get() = when {
         this.stopTime != null && this.stopTime <= Clock.System.now() -> RecordState.STOPPED

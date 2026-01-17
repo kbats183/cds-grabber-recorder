@@ -9,15 +9,19 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.delay
 import kotlinx.io.IOException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.icpclive.cds.util.getLogger
 import java.nio.channels.UnresolvedAddressException
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import io.ktor.client.plugins.auth.Auth as AuthPlugin
 
 class GrabberClient(grabberUrl: String, private val grabberAuth: Pair<String, String>? = null) {
+    constructor(grabberUrl: Config) : this(grabberUrl.grabberUrl, grabberAuth = grabberUrl.grabberAuth)
+
     private val apiPath = "$grabberUrl/api/admin"
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -66,6 +70,8 @@ class GrabberClient(grabberUrl: String, private val grabberAuth: Pair<String, St
             StopRecordRequest(peerName, recordId)
         )
         log.info { "Grabber record stopped $peerName $recordId $response" }
+        delay(3.seconds)
+        uploadRecord(peerName, recordId)
     }
 
     suspend fun uploadRecord(peerName: String, recordId: String) {
@@ -90,4 +96,6 @@ class GrabberClient(grabberUrl: String, private val grabberAuth: Pair<String, St
     companion object {
         val log by getLogger()
     }
+
+    data class Config(val grabberUrl: String, val grabberAuth: Pair<String, String>?)
 }
