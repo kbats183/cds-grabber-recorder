@@ -1,8 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.icpclive.reactions.recorder
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.io.IOException
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -15,6 +17,7 @@ import java.nio.file.StandardCopyOption
 import kotlin.io.path.inputStream
 import kotlin.io.path.name
 import kotlin.io.path.outputStream
+import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalSerializationApi::class)
 class Storage(val filePath: Path) {

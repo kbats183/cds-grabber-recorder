@@ -1,10 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.icpclive.reactions.recorder
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import org.icpclive.cds.ContestUpdate
@@ -20,6 +22,7 @@ import kotlin.math.exp
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 class Recorder(private val cds: Flow<ContestUpdate>) {
     private val actionLogger = Path.of("record.log")
@@ -50,7 +53,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
     }
 
     private fun getPeerName(contestInfo: ContestInfo, run: RunInfo): String? {
-        val c = contestInfo.teams[run.teamId]?.let { it.customFields["grabberPeerName"] }
+        val c = contestInfo.teams[run.teamId]?.let { it.customFields["comp"] }
         if (c == null) {
             log.info { "Failed to get comp of ${run.teamId}" }
         }
@@ -139,7 +142,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
 
     private fun atLeastContestEnd(contestInfo: ContestInfo, expected: Duration): Duration {
         val now = Clock.System.now()
-        val stopTime = contestInfo.instantAt(contestInfo.contestLength - 3.seconds)
+        val stopTime = contestInfo.instantAt(contestInfo.contestLength - 10.seconds)
         if (now <= stopTime) {
             return minOf(expected, stopTime - now)
         }

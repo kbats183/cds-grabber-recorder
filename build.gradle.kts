@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "2.0.10"
+    kotlin("jvm") version "2.2.20"
     application
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("plugin.serialization") version "2.0.20"
+    kotlin("plugin.serialization") version "2.2.20"
 //    id("com.gradleup.shadow")
 }
 
@@ -27,7 +27,7 @@ dependencies {
     implementation("io.ktor:ktor-client-auth:${ktor_version}")
     implementation("io.ktor:ktor-client-content-negotiation:${ktor_version}")
     implementation("io.ktor:ktor-serialization-kotlinx-json:${ktor_version}")
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:7db2182b7787a185624cf4f0369943ecd7c8d739")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:3.4.4")
     implementation("ch.qos.logback:logback-classic:1.5.6")
 }
 
