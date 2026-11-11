@@ -29,7 +29,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
     init {
         try {
             actionLogger.createFile()
-        } catch (ignore: FileAlreadyExistsException) {
+        } catch (_: FileAlreadyExistsException) {
         }
     }
 
@@ -60,7 +60,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
     }
 
     private fun getGrabberConnection(team: TeamInfo?): MediaType.WebRTCGrabberConnection? =
-        (team?.medias[TeamMediaType.CAMERA] as? MediaType.WebRTCGrabberConnection)
+        (team?.medias[TeamMediaType.CAMERA]?.get(0) as? MediaType.WebRTCGrabberConnection)
 
     suspend fun run(scope: CoroutineScope) {
         val cache = mutableMapOf<RunId, RunInfo>()
@@ -69,6 +69,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
         cds.collect {
             if (it is InfoUpdate) {
                 contestInfo = it.newInfo
+
                 return@collect
             } else if (contestInfo == null || it !is RunUpdate) {
                 return@collect
@@ -96,7 +97,7 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                         try {
                             client?.stopRecord(peerName, run.id.toString())
                         } catch (e: Exception) {
-                            log.warning { "Failed to send stop command $peerName (${run.id}): ${e}" }
+                            log.warning { "Failed to send stop command $peerName (${run.id}): ${e.message} : ${e.cause}" }
                         }
                     }
                 } else {
@@ -112,10 +113,10 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                         if (peerName == null) return@launch
                         try {
                             client?.startRecord(
-                                peerName, run.id.toString(), atLeastContestEnd(contestInfo!!, DEFAULT_MAX_RECORD_DELAY)
+                                peerName, run.id.toString(), atLeastContestEnd(contestInfo, DEFAULT_MAX_RECORD_DELAY)
                             )
                         } catch (e: Exception) {
-                            log.warning { "Failed to send start record command $peerName (${run.id}): ${e}" }
+                            log.warning { "Failed to send start record command $peerName (${run.id}): ${e.message} : ${e.cause}" }
                         }
                     }
                 } else {
@@ -131,10 +132,11 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
                         if (peerName == null) return@launch
                         try {
                             client?.startRecord(
-                                peerName, run.id.toString(), atLeastContestEnd(contestInfo!!, MAX_RECORD_DURATION)
+                                peerName, run.id.toString(),
+                                atLeastContestEnd(contestInfo, MAX_RECORD_DURATION)
                             )
                         } catch (e: Exception) {
-                            log.warning { "Failed to send start record command $peerName (${run.id}): ${e}" }
+                            log.warning { "Failed to send start record command $peerName (${run.id}): ${e.message} : ${e.cause}" }
                         }
                     }
                 } else {
@@ -160,8 +162,8 @@ class Recorder(private val cds: Flow<ContestUpdate>) {
         fun now() = Clock.System.now()
         fun nowWithDefaultTimeout() = now() + MAX_RECORD_DURATION
 
-        private val MAX_RECORD_DURATION = 3.minutes
-        private val DEFAULT_MAX_RECORD_DELAY = 2.minutes
+        private val MAX_RECORD_DURATION = 5.minutes
+        private val DEFAULT_MAX_RECORD_DELAY = 3.minutes
         private val RECORD_AFTER_STOP = 30.seconds
     }
 }

@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.2.20"
-    kotlin("plugin.serialization") version "2.2.20"
+    kotlin("jvm") version "2.4.20"
+    kotlin("plugin.serialization") version "2.4.20"
     application
 
     // Shadow plugin — лучший вариант для fat-jar
@@ -30,8 +30,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:3.4.4")
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.yandex:3.4.4")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:3.5.1")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.yandex:3.5.1")
 
     implementation("ch.qos.logback:logback-classic:1.5.6")
 }
