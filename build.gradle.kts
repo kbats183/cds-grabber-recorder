@@ -4,20 +4,15 @@ plugins {
     application
 
     // Shadow plugin — лучший вариант для fat-jar
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 group = "org.icpclive"
 version = "1.0"
 
-repositories {
-    mavenCentral()
-    maven("https://jitpack.io") {
-        group = "com.github.icpc.live-v3"
-    }
-}
+val ktor_version = project.property("ktor_version") as String
+val cds_version = project.property("cds_version") as String
 
-val ktor_version: String by project
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -30,8 +25,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:3.5.1")
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.yandex:3.5.1")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:$cds_version")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.yandex:$cds_version")
 
     implementation("ch.qos.logback:logback-classic:1.5.6")
 }
