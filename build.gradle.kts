@@ -30,8 +30,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:3.5.1")
-    implementation("com.github.icpc.live-v3:org.icpclive.cds.yandex:3.5.1")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.full:$cds_version")
+    implementation("com.github.icpc.live-v3:org.icpclive.cds.yandex:$cds_version")
 
     implementation("ch.qos.logback:logback-classic:1.5.6")
 }
