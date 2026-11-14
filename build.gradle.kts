@@ -2,8 +2,6 @@ plugins {
     kotlin("jvm") version "2.4.20"
     kotlin("plugin.serialization") version "2.4.20"
     application
-
-    // Shadow plugin — лучший вариант для fat-jar
     id("com.gradleup.shadow") version "9.6.1"
 }
 
@@ -32,9 +30,8 @@ dependencies {
 }
 
 tasks.shadowJar {
-//    archiveClassifier.set("") // jar без "-all"
-
-    mergeServiceFiles()       // ← ключевой момент!!!
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
 }
 
 
